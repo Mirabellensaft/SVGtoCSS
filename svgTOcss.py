@@ -10,7 +10,8 @@ class Coordinates( xml.sax.ContentHandler ):
 
     def startElement(self, tag, attributes):
 
-        numbers = ('1234567890.-')
+        numbers = ('1234567890.,- ')
+        raw_coordinates = ""
         coordinates = ""
         self.CurrentData = tag
 
@@ -28,20 +29,36 @@ class Coordinates( xml.sax.ContentHandler ):
                 target.write("  position: absolute;\n")
                 target.write("  height: 800px;\n")
                 target.write("  width: 800px;\n")
+                target.write("  animation: make_elephant{} 5s infinite;\n" .format(style[6:12]))
 
             content = attributes["d"]
-            for char in content[2:]:
+            for char in content:
                 if char in numbers:
-                    coordinates += char
-                elif char is ',':
-                    coordinates += '% '
-                elif char is 'L':
-                    coordinates += '%, '
-                elif char is 'Z':
-                    coordinates += '%'
+                    raw_coordinates += char
+
+            raw_coordinates = raw_coordinates.replace(',', ' ')
+            Liste = raw_coordinates.split()
+
+            for i in range(len(Liste)):
+                if i%2 == 0:
+                    coordinates += Liste[i][0:4] + "% "
+                else:
+                    coordinates += Liste[i][0:4] + "%, "
+
+            coordinates = coordinates[0:-2]
 
 
             target.write("  clip-path: polygon({});\n" .format(coordinates))
+            target.write("  }\n")
+            target.write("  @keyframes make_elephant{} {{ \n" .format(style[6:12]))
+            target.write("    0% {\n")
+            target.write("      background: {};\n".format(style[5:12]))
+            target.write("      clip-path: polygon({});\n" .format(coordinates))
+            target.write("    }\n")
+            target.write("    100% {\n")
+            target.write("      background: {};\n".format(style[5:12]))
+            target.write("      clip-path: polygon({});\n" .format(style[5:12]))
+            target.write("    }\n")
             target.write("  }\n")
             target.write("\n")
 
