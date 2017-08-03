@@ -1,6 +1,5 @@
 import xml.sax
 
-
 """ This parser reads .svg files. The output are coordinates, formatted to
     CSS clip-paths for polygons."""
 
@@ -26,14 +25,14 @@ class divGenerator( xml.sax.ContentHandler ):
 
                 # writes the dic classes in order of appearance
                 # the one that's on the bottom of the html will be displayed on top
-                target.write('      <div class="object{}"></div>\n' .format(polygon_id))
+                target.write('<div class="object{}"></div>\n' .format(polygon_id))
 
     def endElement(self, tag):
       self.CurrentData = ""
 
 #File operations
 print ("index.html is generated...")
-filename_target = "index.html"
+filename_target = input(index.html)
 target = open(filename_target, "w")
 
 filename_origin = input("Name of the .svg file:")
@@ -80,6 +79,8 @@ if ( __name__ == "__main__"):
 target.write('    </div>\n')
 target.write('  </body>\n')
 target.write('</html>\n')
+
+# In the future, here, svgTOcssElefant has to be started
 
 #files are closed!
 target.close()

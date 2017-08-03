@@ -8,7 +8,6 @@ class Coordinates( xml.sax.ContentHandler ):
     def __init__(self):
         self.CurrentData = ""
 
-
     def startElement(self, tag, attributes):
 
         numbers = ('1234567890.,- ')
@@ -17,7 +16,6 @@ class Coordinates( xml.sax.ContentHandler ):
         Platzhalter = ""
         style = ""
         self.CurrentData = tag
-
 
         if tag == "path":
 
@@ -71,6 +69,7 @@ print("Creator for coordinates for the End of the Animation")
 filename_target = input("Name the final file: ")
 target = open(filename_target, "w")
 
+the index.html
 filename_origin_css = input("Name of the .css file:  ")
 origin_css = open(filename_origin_css, "r")
 
