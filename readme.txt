@@ -15,3 +15,6 @@ object ID.
 
 Set the workspace size to 100px * 100px. This way, the coordinates can be used
 as %.
+
+So far, the program has only been tested with triangles. It should work with other
+polygons.
