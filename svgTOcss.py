@@ -3,7 +3,7 @@ import xml.sax
 """ This parser reads .svg files. The output are coordinates, formatted to
     CSS clip-paths for polygons."""
 
-class Coordinates( xml.sax.ContentHandler ):
+class Coordinates(xml.sax.ContentHandler):
     def __init__(self):
         self.CurrentData = ""
 
@@ -27,64 +27,48 @@ class Coordinates( xml.sax.ContentHandler ):
 
             # polygon_id is the hexadecimal code of the stroke
             # polygons of the same id are different animation stages of the same polygon
-
             if style_dictionary.get('stroke'):
                 polygon_id = style_dictionary['stroke'][1:8]
 
                 background = style_dictionary['fill']
 
-            # wrap css
-                target.write("      .object{} {{\n" .format(polygon_id))
-                target.write("        background: {};\n" .format(background))
-                target.write("        position: absolute;\n")
-                target.write("        height: 800px;\n")
-                target.write("        width: 800px;\n")
-                target.write("        animation: make_elephant{} 5s infinite;\n" .format(polygon_id))
 
-            # parsing the coordinates
+                # parsing the coordinates
                 content = attributes["d"]
 
+                # coordinates in percent
                 polygon_coordinates = make_coordinates(content)
 
-            # wrapping css
-                target.write("        clip-path: polygon({});\n" .format(polygon_coordinates))
-                target.write("        }\n")
-                target.write("        @keyframes make_elephant{} {{ \n" .format(polygon_id))
-                target.write("          0% {\n")
-                target.write("            background: {};\n".format(background))
-                target.write("            clip-path: polygon({});\n" .format(polygon_coordinates))
-                target.write("          }\n")
+                # coordinates for calculating
+                polygon_coordinates_raw = make_coordinates_raw(content)
 
-            # the following lines will be replaced later in the program
-                target.write("          replace{}\n".format(polygon_id))
-                target.write("\n")
+                centroid_x = make_centroid_x(polygon_coordinates_raw)
 
+
+                # triangle_data = [polygon_id, background, polygon_coordinates]
+                # Data is written into a file, as the parser cannot return things? wtf?
+                dump.write("{} {} {} {}\n" .format(centroid_x, polygon_id, background, polygon_coordinates))
 
 
     def endElement(self, tag):
       self.CurrentData = ""
 
 
-
-class divGenerator( xml.sax.ContentHandler ):
+class divGenerator(xml.sax.ContentHandler):
     def __init__(self):
         self.CurrentData = ""
 
     def startElement(self, tag, attributes):
-
         self.CurrentData = tag
 
         if tag == "path":
             style = attributes["style"]
-
             style_dictionary = make_style_dictionary(style)
 
             # polygon_id is the hexadecimal code of the stroke
             # polygons of the same id are different animation stages of the same polygon
             if style_dictionary.get('stroke'):
-
                 polygon_id = style_dictionary['stroke'][1:8]
-
                 background = style_dictionary['fill']
 
                 # writes the dic classes in order of appearance
@@ -94,47 +78,39 @@ class divGenerator( xml.sax.ContentHandler ):
     def endElement(self, tag):
       self.CurrentData = ""
 
-class Animation ( xml.sax.ContentHandler ):
+class Animation(xml.sax.ContentHandler):
     def __init__(self):
         self.CurrentData = ""
 
     def startElement(self, tag, attributes):
-
         self.CurrentData = tag
 
         if tag == "path":
 
             # only if the # is in the line, the path belongs to a polygon
             style = attributes["style"]
-
             style_dictionary = make_style_dictionary(style)
 
             # polygon_id is the hexadecimal code of the stroke
             # polygons of the same id are different animation stages of the same polygon
-
-
             polygon_id = style_dictionary['stroke'][1:8]
-
             background = style_dictionary['fill']
 
             # parsing the coordinates
             content = attributes["d"]
-
-
             polygon_coordinates = make_coordinates(content)
 
-        # search and replace the replace line in index.html, generating the
-        # 100% keyframe.
+            # search and replace the replace line in index.html, generating the
+            # 100% keyframe.
 
-
-        # Read in the file
-            with open('index.html', 'r') as file :
+            # Read in the file
+            with open('index.html', 'r') as file:
                 filedata = file.read()
 
-        # Replace the target string
-            filedata = filedata.replace("replace{}".format(polygon_id), "100% {{\n            background: {};\n            clip-path: polygon({});\n          }}\n        }}" .format(background, polygon_coordinates))
+            # Replace the target string
+            filedata = filedata.replace("REPLACE{}".format(polygon_id), "100% {{\n            background: {};\n            clip-path: polygon({});\n            }}" .format(background, polygon_coordinates))
 
-        # Write the file out again
+            # Write the file out again
             with open('index.html', 'w') as file:
                 file.write(filedata)
 
@@ -154,6 +130,33 @@ def make_style_dictionary(path_style):
             style_dict[path_style_list[i]] = path_style_list[i+1]
 
     return style_dict
+
+def make_coordinates_raw(path_coordinates):
+    numbers = ('1234567890.,- ')
+    raw_coordinates = ""
+    coordinates = ""
+
+    # to make css-coordinates from the svg-path, characters other then
+    # numbers and commas have to be omitted
+    for char in path_coordinates:
+        if char in numbers:
+            raw_coordinates += char
+
+    raw_coordinates = raw_coordinates.replace(',', ' ')
+    Liste = raw_coordinates.split()
+
+    # the pixel number is reduced to 3 places and used as%
+    for i in range(len(Liste)):
+        if i%2 == 0:
+            coordinates += Liste[i][0:4] + " "
+        else:
+            coordinates += Liste[i][0:4] + ", "
+
+    # ....to get rid of the final comma
+    coordinates = coordinates[0:-2]
+
+    return coordinates
+
 
 def make_coordinates(path_coordinates):
     numbers = ('1234567890.,- ')
@@ -181,11 +184,13 @@ def make_coordinates(path_coordinates):
 
     return coordinates
 
-def make_centroid(coordinates):
+
+def make_centroid_x(coordinates):
 
     x_values = 0
     y_values = 0
 
+    coordinates = coordinates.replace(',', '')
     Liste = coordinates.split()
 
     # makes clean coordinates as float
@@ -196,22 +201,86 @@ def make_centroid(coordinates):
             x_values += Liste[i]
         else:
             y_values += Liste[i]
+
     # calculates x- and y-values of the centroid
     x_value = x_values/3
     y_value = y_values/3
 
-    centroid = (x_value, y_value)
+    x_value = round(x_value, 2)
+    y_value = round(y_value, 2)
+
+    centroid = x_value
 
     return centroid
 
 
-#File operations
+def make_triangle_dict():
+    triangle_dict = {}
+    triangle_data = []
+
+    f = open('dump.txt','r')
+    for l in f:
+        line = str(l)
+        data_raw = line.split(" ")
+
+        centroid_x = float(data_raw[0])
+        polygon_id = data_raw[1]
+        background = data_raw[2]
+        # -1 to get rid of /n
+        polygon_coordinates = "{} {} {} {} {} {}" .format(data_raw[3], data_raw[4], data_raw[5], data_raw[6], data_raw[7], data_raw[8][:-1])
+
+
+        triangle_data = [polygon_id, background, polygon_coordinates]
+
+        triangle_dict[centroid_x] = triangle_data
+
+
+    return triangle_dict
+
+
+def wrap_css(polygon_dict):
+
+
+    wrap = ""
+    delay = 0
+
+    for key in sorted(polygon_dict):
+        polygon_id = polygon_dict[key][0]
+        background = polygon_dict[key][1]
+        polygon_coordinates = polygon_dict[key][2]
+
+
+        string = """
+      .object{} {{
+        background: {};
+        position: absolute;
+        height: 800px;
+        width: 800px;
+        animation: make_elephant{} 3s {}ms forwards;
+        clip-path: polygon({});
+        }}
+        @keyframes make_elephant{} {{
+          0% {{
+          background: {};
+          clip-path: polygon({});
+          }}
+
+          REPLACE{}
+          }}
+        """.format(polygon_id, background, polygon_id, delay, polygon_coordinates, polygon_id, background, polygon_coordinates, polygon_id)
+
+        wrap += string
+        delay += 71
+
+    return wrap
+
+# File operations
 print ("index.html is generated...")
 filename_target = "index.html"
 target = open(filename_target, "w")
 
 
-#this wraps the html/css scaffolding
+# this wraps the html/css scaffolding
 target.write('<!DOCTYPE html>\n')
 target.write('\n')
 target.write('<html>\n')
@@ -228,18 +297,23 @@ target.write('      }\n')
 target.write('\n')
 target.write('      div {\n')
 target.write('      }\n')
+target.write('      }\n')
+target.write('      }\n')
 target.write('\n')
 
 target.close()
 
 # css objects and @keyframes are generated from svg
-
 filename_origin = input("Name of the .svg file (Beginning of animation): ")
 origin = open(filename_origin, "r")
 
-filename_target = "index.html"
+#filename_target = "index.html"
 target = open(filename_target, "a")
 
+filename_dump = "dump.txt"
+dump = open(filename_dump, "w")
+
+# starting xml parser
 parser = xml.sax.make_parser()
 parser.setFeature(xml.sax.handler.feature_namespaces, 0)
 Handler = Coordinates()
@@ -248,6 +322,16 @@ parser.setContentHandler(Handler)
 parser.parse(origin)
 
 origin.close()
+dump.close()
+
+
+triangle_dictionary = make_triangle_dict()
+
+css_wrapping = wrap_css(triangle_dictionary)
+
+target.write(css_wrapping)
+
+
 
 # start of html body
 target.write('\n')
@@ -260,7 +344,7 @@ target.write('    <div>\n')
 # Here, the div classes are generated from the polygon_id
 origin = open(filename_origin, "r")
 
-
+# xml parser
 parser = xml.sax.make_parser()
 parser.setFeature(xml.sax.handler.feature_namespaces, 0)
 Handler = divGenerator()
@@ -273,19 +357,17 @@ target.write('    </div>\n')
 target.write('  </body>\n')
 target.write('</html>\n')
 
-
-#files are closed!
+# files are closed!
 target.close()
 origin.close()
 
-#open second second svg file and index for search and replace.
-
+# open second second svg file and index for search and replace.
 filename_origin = input("Name of the .svg file (End of animation): ")
 origin = open(filename_origin, "r")
 
 print("Generating animation...")
 
-# starting parser
+# starting xml parser
 parser = xml.sax.make_parser()
 parser.setFeature(xml.sax.handler.feature_namespaces, 0)
 Handler = Animation()
@@ -293,8 +375,7 @@ parser.setContentHandler(Handler)
 
 parser.parse(origin)
 
-
-
 target.close()
 origin.close()
-print ("The parser has finished parsing.")
+
+print("The parser has finished parsing.")
