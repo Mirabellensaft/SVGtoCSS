@@ -9,12 +9,10 @@ Coordinates in the .svg need to be absolute.
         'Force repeat commands' has to be activated.
 
 You need two files: one for the beginning, and one for the end of the animation.
-Corresponding polygons in both files need to have the same stroke color.
-The stroke will not be shown in the animation, but the hexadecimal is used as an
-object ID.
+A Triangle in one file will morph into a triangle of the other file. They are
+matched according to how close they are. The files need to have the same number
+of triangles
 
-Set the workspace size to 100px * 100px. This way, the coordinates can be used
-as %.
+Coordinates of the triangles will be converted in percent values
 
-So far, the program has only been tested with triangles. It should work with other
-polygons.
+So far, the program has only been tested with triangles.
